@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="bg-gray-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GeoObras Enterprise</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        /* UI de Aplicativo Nativo */
+        body { font-family: 'Inter', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+        .app-frame { max-width: 430px; margin: 0 auto; background: #F8FAFC; min-height: 100vh; position: relative; padding-bottom: 90px; box-shadow: 0 0 60px rgba(0,0,0,0.1); overflow-x: hidden; }
+        
+        /* Componentes Interativos */
+        .weather-btn { transition: all 0.2s; }
+        .weather-btn.selected { background-color: #0f172a; color: white; border-color: #0f172a; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transform: scale(1.05); }
+        
+        .tab-btn { transition: all 0.2s; position: relative; }
+        .tab-btn.active { color: #2563eb; font-weight: bold; }
+        .tab-btn.active::after { content: ''; position: absolute; bottom: 0; left: 20%; right: 20%; height: 3px; background: #2563EB; border-radius: 3px 3px 0 0; }
+        
+        .nav-item { transition: all 0.2s; }
+        .nav-item.active { color: #2563eb; }
+        .nav-item.active i { transform: translateY(-2px); }
+        
+        .hidden-screen { display: none !important; }
+        
+        /* Animações */
+        .fade-in { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .scale-in { animation: scaleIn 0.2s ease-out; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        
+        /* Toggle Switch iOS Style */
+        .toggle-checkbox:checked { right: 0; border-color: #10B981; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #10B981; }
+    </style>
+</head>
+<body>
+
+<div class="app-frame">
+    
+    <header class="bg-white/90 backdrop-blur-md text-slate-800 p-4 flex justify-between items-center sticky top-0 z-50 border-b border-gray-100">
+        <div class="flex items-center gap-2">
+            <div class="bg-slate-900 text-yellow-400 w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shadow-sm">GO</div>
+            <h1 class="font-bold text-lg tracking-tight">GeoObras</h1>
+        </div>
+        
+        <button onclick="toggleConnection()" id="status-badge" class="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-colors">
+            <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> <span>ONLINE</span>
+        </button>
+    </header>
+
+    <main id="screen-home" class="screen fade-in p-4 pb-24">
+        <div class="flex justify-between items-end mb-6">
+            <div>
+                <p class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Bem-vindo de volta</p>
+                <h2 class="text-2xl font-bold text-slate-800">Eng. Carlos Silva</h2>
+            </div>
+            <img src="https://ui-avatars.com/api/?name=Carlos+Silva&background=0F172A&color=fff" class="w-10 h-10 rounded-full border-2 border-white shadow-sm">
+        </div>
+
+        <div class="flex gap-3 mb-8 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+             <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-4 rounded-2xl min-w-[150px] shadow-lg shadow-slate-200">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-2 bg-white/10 rounded-lg"><i class="fa-solid fa-building-columns"></i></div>
+                    <span class="text-xs bg-white/20 px-2 py-0.5 rounded text-white/80">Total</span>
+                </div>
+                <h3 class="text-3xl font-bold mb-1">05</h3>
+                <p class="text-xs text-gray-400">Obras Gerenciadas</p>
+             </div>
+             
+             <div class="bg-white text-slate-800 p-4 rounded-2xl border border-gray-100 min-w-[150px] shadow-sm">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-2 bg-yellow-50 text-yellow-600 rounded-lg"><i class="fa-solid fa-clock"></i></div>
+                    <span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">Ação</span>
+                </div>
+                <h3 class="text-3xl font-bold mb-1">02</h3>
+                <p class="text-xs text-gray-400">RDOs Pendentes</p>
+             </div>
+
+             <div class="bg-white text-slate-800 p-4 rounded-2xl border border-gray-100 min-w-[150px] shadow-sm">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-2 bg-blue-50 text-blue-600 rounded-lg"><i class="fa-solid fa-cloud-sun"></i></div>
+                </div>
+                <h3 class="text-3xl font-bold mb-1">Sol</h3>
+                <p class="text-xs text-gray-400">Previsão Teresina</p>
+             </div>
+        </div>
+
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-slate-800">Canteiros Ativos</h3>
+            <button class="text-blue-600 text-xs font-bold">Ver Mapa</button>
+        </div>
+        
+        <div class="space-y-3">
+            <div onclick="openRDOForm('Residencial Vila Verde', 'R. Margaridas, 120')" class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-[0.98] transition-transform relative overflow-hidden group">
+                <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-green-500 rounded-l-2xl"></div>
+                <div class="flex justify-between items-start mb-2 pl-2">
+                    <div>
+                        <span class="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-1 rounded mb-1 inline-block">EM ANDAMENTO</span>
+                        <h4 class="font-bold text-slate-800">Residencial Vila Verde</h4>
+                    </div>
+                    <button class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                </div>
+                <div class="pl-2 flex items-center gap-4 text-xs text-gray-500 mt-2">
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-location-dot"></i> Zona Norte</span>
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-chart-pie"></i> 45% Concluído</span>
+                </div>
+            </div>
+
+            <div onclick="openRDOForm('Edifício Horizonte', 'Av. Central, 900')" class="bg-white p-4 rounded-2xl border border-red-100 shadow-sm active:scale-[0.98] transition-transform relative overflow-hidden group">
+                <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-red-500 rounded-l-2xl"></div>
+                <div class="flex justify-between items-start mb-2 pl-2">
+                    <div>
+                        <span class="bg-red-50 text-red-700 text-[10px] font-bold px-2 py-1 rounded mb-1 inline-block flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> RDO ATRASADO</span>
+                        <h4 class="font-bold text-slate-800">Edifício Horizonte</h4>
+                    </div>
+                    <button class="w-8 h-8 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-red-50 group-hover:text-red-600 transition-colors"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                </div>
+                <div class="pl-2 flex items-center gap-4 text-xs text-gray-500 mt-2">
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-location-dot"></i> Centro</span>
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-chart-pie"></i> 12% Concluído</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <main id="screen-form" class="screen hidden-screen fade-in bg-white pb-24">
+        <div class="sticky top-0 bg-white/95 backdrop-blur z-40 border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+            <button onclick="navigate('home')" class="w-8 h-8 rounded-full bg-gray-50 text-slate-600 flex items-center justify-center hover:bg-gray-100"><i class="fa-solid fa-arrow-left"></i></button>
+            <div class="flex-1">
+                <p class="text-[10px] text-gray-400 font-bold uppercase">Preenchendo Agora</p>
+                <h2 id="form-title" class="text-sm font-bold text-slate-800 truncate">Nome da Obra</h2>
+            </div>
+            <div class="text-xs font-bold text-gray-400" id="form-date">04/02</div>
+        </div>
+
+        <div class="p-5 space-y-8">
+            <section>
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><div class="w-1 h-4 bg-blue-500 rounded-full"></div>Condições Climáticas</h3>
+                
+                <div class="mb-4">
+                    <label class="text-xs font-bold text-gray-400 uppercase mb-2 block">Período da Manhã</label>
+                    <div class="grid grid-cols-3 gap-3" id="weather-morning">
+                        <button onclick="setWeather('morning', 'Sol', this)" class="weather-btn bg-white border border-gray-200 text-gray-500 py-3 rounded-xl flex flex-col items-center gap-1"><i class="fa-solid fa-sun text-xl"></i><span class="text-xs">Sol</span></button>
+                        <button onclick="setWeather('morning', 'Nublado', this)" class="weather-btn bg-white border border-gray-200 text-gray-500 py-3 rounded-xl flex flex-col items-center gap-1"><i class="fa-solid fa-cloud text-xl"></i><span class="text-xs">Nublado</span></button>
+                        <button onclick="setWeather('morning', 'Chuva', this)" class="weather-btn bg-white border border-gray-200 text-gray-500 py-3 rounded-xl flex flex-col items-center gap-1"><i class="fa-solid fa-cloud-rain text-xl"></i><span class="text-xs">Chuva</span></button>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="text-xs font-bold text-gray-400 uppercase mb-2 block">Período da Tarde</label>
+                    <div class="grid grid-cols-3 gap-3" id="weather-afternoon">
+                        <button onclick="setWeather('afternoon', 'Sol', this)" class="weather-btn bg-white border border-gray-200 text-gray-500 py-3 rounded-xl flex flex-col items-center gap-1"><i class="fa-solid fa-sun text-xl"></i><span class="text-xs">Sol</span></button>
+                        <button onclick="setWeather('afternoon', 'Nublado', this)" class="weather-btn bg-white border border-gray-200 text-gray-500 py-3 rounded-xl flex flex-col items-center gap-1"><i class="fa-solid fa-cloud text-xl"></i><span class="text-xs">Nublado</span></button>
+                        <button onclick="setWeather('afternoon', 'Chuva', this)" class="weather-btn bg-white border border-gray-200 text-gray-500 py-3 rounded-xl flex flex-col items-center gap-1"><i class="fa-solid fa-cloud-rain text-xl"></i><span class="text-xs">Chuva</span></button>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><div class="w-1 h-4 bg-blue-500 rounded-full"></div>Efetivo e Equipamentos</h3>
+                
+                <div class="flex border-b border-gray-100 mb-4">
+                    <button onclick="switchTab('labor')" id="tab-labor" class="tab-btn active flex-1 pb-3 text-sm text-center text-gray-400">Mão de Obra</button>
+                    <button onclick="switchTab('equip')" id="tab-equip" class="tab-btn flex-1 pb-3 text-sm text-center text-gray-400">Maquinário</button>
+                </div>
+
+                <div id="content-labor" class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <span class="text-sm font-bold text-slate-700">Mestre de Obras</span>
+                        <div class="flex items-center gap-3 bg-white rounded-lg shadow-sm p-1">
+                            <button onclick="updateCounter('mestre', -1)" class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-blue-600 font-bold">-</button>
+                            <span id="cnt-mestre" class="font-bold text-sm w-4 text-center">1</span>
+                            <button onclick="updateCounter('mestre', 1)" class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-blue-600 font-bold">+</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <span class="text-sm font-bold text-slate-700">Pedreiros</span>
+                        <div class="flex items-center gap-3 bg-white rounded-lg shadow-sm p-1">
+                            <button onclick="updateCounter('pedreiro', -1)" class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-blue-600 font-bold">-</button>
+                            <span id="cnt-pedreiro" class="font-bold text-sm w-4 text-center">4</span>
+                            <button onclick="updateCounter('pedreiro', 1)" class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-blue-600 font-bold">+</button>
+                        </div>
+                    </div>
+                     <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <span class="text-sm font-bold text-slate-700">Serventes</span>
+                        <div class="flex items-center gap-3 bg-white rounded-lg shadow-sm p-1">
+                            <button onclick="updateCounter('servente', -1)" class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-blue-600 font-bold">-</button>
+                            <span id="cnt-servente" class="font-bold text-sm w-4 text-center">6</span>
+                            <button onclick="updateCounter('servente', 1)" class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-blue-600 font-bold">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="content-equip" class="space-y-3 hidden-screen">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <span class="text-sm font-bold text-slate-700">Betoneira</span>
+                        <div class="flex items-center gap-3 bg-white rounded-lg shadow-sm p-1">
+                            <button onclick="updateCounter('betoneira', -1)" class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-blue-600 font-bold">-</button>
+                            <span id="cnt-betoneira" class="font-bold text-sm w-4 text-center">2</span>
+                            <button onclick="updateCounter('betoneira', 1)" class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-blue-600 font-bold">+</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <span class="text-sm font-bold text-slate-700">Caminhão</span>
+                        <div class="flex items-center gap-3 bg-white rounded-lg shadow-sm p-1">
+                            <button onclick="updateCounter('caminhao', -1)" class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-blue-600 font-bold">-</button>
+                            <span id="cnt-caminhao" class="font-bold text-sm w-4 text-center">0</span>
+                            <button onclick="updateCounter('caminhao', 1)" class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-blue-600 font-bold">+</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="space-y-4">
+                <div>
+                    <h3 class="font-bold text-slate-800 mb-2 flex items-center gap-2"><div class="w-1 h-4 bg-blue-500 rounded-full"></div>Atividades Executadas</h3>
+                    <div class="relative">
+                        <textarea id="txt-activities" class="w-full h-32 p-4 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none resize-none" placeholder="Descreva o que foi realizado hoje..."></textarea>
+                        <button class="absolute bottom-3 right-3 text-blue-500 bg-blue-50 p-2 rounded-full hover:bg-blue-100"><i class="fa-solid fa-microphone"></i></button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-slate-800 mb-2 flex items-center gap-2"><div class="w-1 h-4 bg-orange-500 rounded-full"></div>Ocorrências</h3>
+                    <textarea id="txt-issues" class="w-full h-24 p-4 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all outline-none resize-none" placeholder="Houve algum problema ou atraso?"></textarea>
+                </div>
+            </section>
+
+            <section>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2"><div class="w-1 h-4 bg-blue-500 rounded-full"></div>Fotos e Evidências</h3>
+                    <span class="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded font-bold">2 Anexadas</span>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2" id="photo-grid">
+                    <div class="aspect-square relative rounded-xl overflow-hidden group">
+                        <img src="https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=300&q=80" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button class="text-white"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="aspect-square relative rounded-xl overflow-hidden group">
+                        <img src="https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=300&q=80" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button class="text-white"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <button onclick="addPhotoMock()" class="aspect-square rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all">
+                        <i class="fa-solid fa-camera text-xl mb-1"></i>
+                        <span class="text-[10px] font-bold">Adicionar</span>
+                    </button>
+                </div>
+            </section>
+            
+            <div class="h-8"></div> <button onclick="submitRDO()" id="btn-submit" class="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-lg shadow-lg shadow-slate-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                <span>Finalizar e Assinar</span>
+                <i class="fa-solid fa-pen-nib"></i>
+            </button>
+            <p class="text-center text-xs text-gray-400 mt-2">Ao finalizar, o PDF será gerado e enviado ao cliente.</p>
+
+        </div>
+    </main>
+
+    <main id="screen-history" class="screen hidden-screen fade-in p-4 pb-24">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">Diários Anteriores</h2>
+        
+        <div class="flex gap-2 mb-6">
+            <button onclick="filterHistory('all', this)" class="filter-btn bg-slate-800 text-white px-4 py-2 rounded-full text-xs font-bold transition-colors">Todos</button>
+            <button onclick="filterHistory('pending', this)" class="filter-btn bg-white border border-gray-200 text-gray-500 px-4 py-2 rounded-full text-xs font-bold transition-colors">Pendentes</button>
+            <button onclick="filterHistory('signed', this)" class="filter-btn bg-white border border-gray-200 text-gray-500 px-4 py-2 rounded-full text-xs font-bold transition-colors">Assinados</button>
+        </div>
+
+        <div id="history-container" class="space-y-3">
+            </div>
+    </main>
+
+    <main id="screen-settings" class="screen hidden-screen fade-in p-4 pb-24">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">Ajustes</h2>
+        
+        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 mb-6">
+            <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xl font-bold">CS</div>
+            <div>
+                <h3 class="font-bold text-slate-800">Carlos Silva</h3>
+                <p class="text-xs text-gray-500">Engenheiro Civil Pleno</p>
+                <p class="text-[10px] text-green-600 font-bold mt-1">CREA Ativo • Licença Pro</p>
+            </div>
+            <button class="ml-auto text-gray-400"><i class="fa-solid fa-pen"></i></button>
+        </div>
+
+        <div class="space-y-4">
+            <h3 class="text-xs font-bold text-gray-400 uppercase ml-2">Preferências</h3>
+            
+            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                <div class="p-4 flex items-center justify-between border-b border-gray-50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center"><i class="fa-regular fa-bell"></i></div>
+                        <span class="text-sm font-bold text-slate-700">Notificações Push</span>
+                    </div>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle" id="toggle1" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300"/>
+                        <label for="toggle1" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+                 <div class="p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center"><i class="fa-solid fa-wifi"></i></div>
+                        <span class="text-sm font-bold text-slate-700">Sincronizar só no Wi-Fi</span>
+                    </div>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle" id="toggle2" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300" checked/>
+                        <label for="toggle2" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="text-xs font-bold text-gray-400 uppercase ml-2">Suporte</h3>
+             <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                <button class="w-full p-4 flex items-center justify-between hover:bg-gray-50 text-left border-b border-gray-50">
+                    <span class="text-sm font-bold text-slate-700 ml-2">Central de Ajuda</span>
+                    <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
+                </button>
+                <button class="w-full p-4 flex items-center justify-between hover:bg-gray-50 text-left">
+                    <span class="text-sm font-bold text-red-600 ml-2">Sair do Aplicativo</span>
+                    <i class="fa-solid fa-right-from-bracket text-red-400 text-xs"></i>
+                </button>
+             </div>
+        </div>
+        
+        <p class="text-center text-[10px] text-gray-400 mt-8 mb-4">Versão 2.4.0 (Build 984) - GeoObras Tecnologia</p>
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 max-w-[430px] mx-auto pb-safe">
+        <div class="flex justify-between items-end px-6 pb-4 pt-2 h-16 relative">
+            
+            <button onclick="navigate('home')" id="nav-home" class="nav-item active flex flex-col items-center w-16 transition-colors group">
+                <div class="mb-1 p-1 rounded-xl group-active:bg-gray-50 transition-colors">
+                    <i class="fa-solid fa-house text-xl"></i>
+                </div>
+                <span class="text-[10px] font-bold">Início</span>
+            </button>
+            
+            <div class="relative -top-5">
+                <button onclick="toggleQuickMenu()" class="bg-slate-900 text-yellow-400 w-16 h-16 rounded-full shadow-lg shadow-slate-400/50 flex items-center justify-center border-[5px] border-[#F8FAFC] active:scale-95 transition-transform">
+                    <i class="fa-solid fa-plus text-2xl"></i>
+                </button>
+            </div>
+            
+            <button onclick="navigate('history')" id="nav-history" class="nav-item flex flex-col items-center w-16 text-slate-400 hover:text-blue-600 transition-colors group">
+                <div class="mb-1 p-1 rounded-xl group-active:bg-gray-50 transition-colors">
+                    <i class="fa-solid fa-clock-rotate-left text-xl"></i>
+                </div>
+                <span class="text-[10px] font-bold">Histórico</span>
+            </button>
+            
+             <button onclick="navigate('settings')" id="nav-settings" class="nav-item flex flex-col items-center w-16 text-slate-400 hover:text-blue-600 transition-colors group">
+                <div class="mb-1 p-1 rounded-xl group-active:bg-gray-50 transition-colors">
+                    <i class="fa-solid fa-user-gear text-xl"></i>
+                </div>
+                <span class="text-[10px] font-bold">Ajustes</span>
+            </button>
+
+        </div>
+    </nav>
+
+    <div id="quick-menu" class="hidden-screen fixed inset-0 z-[70] bg-slate-900/60 backdrop-blur-sm flex items-end justify-center pb-24" onclick="toggleQuickMenu()">
+        <div class="bg-white w-[90%] rounded-3xl p-6 slide-up shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold text-lg text-slate-800">Menu Rápido</h3>
+                <button onclick="toggleQuickMenu()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="openRDOForm('Nova Obra', 'Endereço GPS')" class="bg-blue-50 hover:bg-blue-100 p-4 rounded-xl flex flex-col items-center gap-2 transition-colors">
+                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white"><i class="fa-solid fa-file-pen"></i></div>
+                    <span class="font-bold text-slate-700 text-sm">Novo RDO</span>
+                </button>
+                <button onclick="alert('Funcionalidade: Adicionar Colaborador')" class="bg-purple-50 hover:bg-purple-100 p-4 rounded-xl flex flex-col items-center gap-2 transition-colors">
+                    <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white"><i class="fa-solid fa-user-plus"></i></div>
+                    <span class="font-bold text-slate-700 text-sm">Equipe</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div> 
+
+
+
+<script>
+    // --- ESTADO DA APLICAÇÃO ---
+    const appState = {
+        currentObra: null,
+        currentAddress: null,
+        formData: {
+            weatherMorning: 'Sol',
+            weatherAfternoon: 'Sol',
+            labor: { mestre: 1, pedreiro: 4, servente: 6 },
+            equip: { betoneira: 2, caminhao: 0 }
+        },
+        // Dados iniciais do histórico (fake)
+        history: [
+            { id: 101, obra: 'Residencial Vila Verde', date: '03/Fev', status: 'signed', pdfUrl: '#' },
+            { id: 102, obra: 'Residencial Vila Verde', date: '02/Fev', status: 'signed', pdfUrl: '#' },
+            { id: 103, obra: 'Edifício Horizonte', date: '03/Fev', status: 'pending', pdfUrl: '#' }
+        ]
+    };
+
+    // --- NAVEGAÇÃO ---
+    function navigate(screenId) {
+        // Esconde todas as telas
+        document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden-screen'));
+        // Mostra a desejada
+        document.getElementById(`screen-${screenId}`).classList.remove('hidden-screen');
+        window.scrollTo(0,0);
+        
+        // Atualiza Menu Inferior
+        document.querySelectorAll('.nav-item').forEach(el => {
+            el.classList.remove('active', 'text-blue-600');
+            el.classList.add('text-slate-400');
+        });
+        
+        const activeNav = document.getElementById(`nav-${screenId}`);
+        if(activeNav) {
+            activeNav.classList.add('active', 'text-blue-600');
+            activeNav.classList.remove('text-slate-400');
+        }
+
+        // Se for histórico, recarregar a lista
+        if(screenId === 'history') renderHistory();
+    }
+
+    function openRDOForm(obraName, address) {
+        toggleQuickMenu(false); // Fecha modal se estiver aberto
+        appState.currentObra = obraName;
+        appState.currentAddress = address;
+        document.getElementById('form-title').innerText = obraName;
+        
+        // Data de hoje formatada
+        const date = new Date();
+        document.getElementById('form-date').innerText = `${date.getDate()}/${date.getMonth()+1}`;
+        
+        navigate('form');
+    }
+
+    function toggleQuickMenu(forceState) {
+        const menu = document.getElementById('quick-menu');
+        if (forceState === false) {
+            menu.classList.add('hidden-screen');
+            return;
+        }
+        menu.classList.toggle('hidden-screen');
+    }
+
+    // --- LÓGICA DO FORMULÁRIO ---
+    
+    // 1. Clima
+    function setWeather(period, type, btnElement) {
+        // Remove seleção anterior
+        const container = document.getElementById(`weather-${period}`);
+        container.querySelectorAll('.weather-btn').forEach(b => b.classList.remove('selected'));
+        // Seleciona novo
+        btnElement.classList.add('selected');
+        
+        // Atualiza estado
+        if(period === 'morning') appState.formData.weatherMorning = type;
+        else appState.formData.weatherAfternoon = type;
+    }
+
+    // 2. Abas (Workforce vs Equipment)
+    function switchTab(tab) {
+        // Botões
+        document.getElementById('tab-labor').classList.remove('active', 'text-blue-600');
+        document.getElementById('tab-equip').classList.remove('active', 'text-blue-600');
+        
+        document.getElementById(`tab-${tab}`).classList.add('active', 'text-blue-600');
+        
+        // Conteúdo
+        document.getElementById('content-labor').classList.add('hidden-screen');
+        document.getElementById('content-equip').classList.add('hidden-screen');
+        
+        document.getElementById(`content-${tab}`).classList.remove('hidden-screen');
+    }
+
+    // 3. Contadores
+    function updateCounter(key, delta) {
+        const display = document.getElementById(`cnt-${key}`);
+        let currentVal = parseInt(display.innerText);
+        let newVal = currentVal + delta;
+        if(newVal < 0) newVal = 0;
+        
+        display.innerText = newVal;
+        
+        // Atualiza estado
+        if(['mestre', 'pedreiro', 'servente'].includes(key)) appState.formData.labor[key] = newVal;
+        else appState.formData.equip[key] = newVal;
+    }
+
+    // 4. Fotos Mock
+    function addPhotoMock() {
+        const grid = document.getElementById('photo-grid');
+        const randomId = Math.floor(Math.random() * 1000);
+        const newPhotoHTML = `
+            <div class="aspect-square relative rounded-xl overflow-hidden group scale-in">
+                <img src="https://source.unsplash.com/random/300x300/?construction&sig=${randomId}" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="text-white" onclick="this.closest('div.relative').remove()"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+        `;
+        // Insere antes do botão de adicionar
+        grid.insertAdjacentHTML('afterbegin', newPhotoHTML);
+    }
+
+    // --- FUNÇÃO CORE: GERAR PDF E SALVAR ---
+    async function submitRDO() {
+        const btn = document.getElementById('btn-submit');
+        const originalContent = btn.innerHTML;
+        
+        // 1. Estado de Loading
+        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processando...`;
+        btn.classList.add('opacity-75', 'cursor-not-allowed');
+        
+        // Delay simulado de processamento (1.5s)
+        await new Promise(r => setTimeout(r, 1500));
+
+        // 2. Coletar Dados para o PDF
+        const docData = {
+            obra: appState.currentObra,
+            data: new Date().toLocaleDateString('pt-BR'),
+            clima: `${appState.formData.weatherMorning} / ${appState.formData.weatherAfternoon}`,
+            activities: document.getElementById('txt-activities').value || "Sem atividades registradas.",
+            issues: document.getElementById('txt-issues').value || "Sem ocorrências.",
+            team: `Mestre: ${appState.formData.labor.mestre} | Pedreiros: ${appState.formData.labor.pedreiro} | Serventes: ${appState.formData.labor.servente}`,
+            equip: `Betoneira: ${appState.formData.equip.betoneira}`
+        };
+
+        // 3. Gerar PDF com JSPDF
+        generatePDF(docData);
+
+        // 4. Salvar no Histórico (Simulação de Backend)
+        appState.history.unshift({
+            id: Math.floor(Math.random() * 10000),
+            obra: appState.currentObra,
+            date: 'Hoje',
+            status: 'signed',
+            pdfUrl: '#'
+        });
+
+        // 5. Reset e Feedback
+        btn.innerHTML = originalContent;
+        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+        
+        alert("✅ RDO Finalizado com Sucesso!\nO documento foi assinado digitalmente e enviado.");
+        navigate('history');
+    }
+
+    function generatePDF(data) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Cabeçalho Profissional
+        doc.setFillColor(15, 23, 42); // Slate 900
+        doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22); doc.setFont("helvetica", "bold");
+        doc.text("RELATÓRIO DIÁRIO DE OBRA", 105, 20, null, null, "center");
+        doc.setFontSize(10); doc.setFont("helvetica", "normal");
+        doc.text(`Doc ID: #${Math.floor(Math.random()*10000)}  |  Data: ${data.data}`, 105, 30, null, null, "center");
+
+        // Informações
+        doc.setTextColor(0,0,0);
+        let y = 50;
+        
+        doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.text(`Obra: ${data.obra}`, 14, y);
+        y += 10;
+        doc.text(`Condições Climáticas: ${data.clima}`, 14, y);
+        y += 15;
+
+        // Tabelas
+        doc.autoTable({
+            startY: y,
+            head: [['Recurso', 'Detalhamento']],
+            body: [
+                ['Mão de Obra', data.team],
+                ['Equipamentos', data.equip]
+            ],
+            theme: 'grid',
+            headStyles: { fillColor: [71, 85, 105] }
+        });
+        
+        y = doc.lastAutoTable.finalY + 15;
+
+        // Textos
+        doc.setFontSize(14); doc.text("Atividades Executadas", 14, y);
+        doc.setFontSize(10); doc.setFont("helvetica", "normal");
+        const splitAct = doc.splitTextToSize(data.activities, 180);
+        doc.text(splitAct, 14, y + 7);
+        
+        y += 20 + (splitAct.length * 5);
+        
+        doc.setFontSize(14); doc.setFont("helvetica", "bold"); doc.text("Ocorrências", 14, y);
+        doc.setFontSize(10); doc.setFont("helvetica", "normal");
+        const splitIss = doc.splitTextToSize(data.issues, 180);
+        doc.text(splitIss, 14, y + 7);
+
+        // Assinatura Digital (Fake)
+        doc.setLineWidth(0.5); doc.setDrawColor(200, 200, 200);
+        doc.line(14, 270, 196, 270);
+        doc.setFontSize(8); doc.setTextColor(100, 100, 100);
+        doc.text("Documento assinado digitalmente por Eng. Carlos Silva (CREA 12345)", 14, 275);
+        doc.text(`Hash: ${Math.random().toString(36).substring(7)}`, 14, 280);
+
+        doc.save(`RDO_${data.obra.replace(/\s/g, '_')}.pdf`);
+    }
+
+    // --- RENDERIZAÇÃO DE HISTÓRICO ---
+    function renderHistory(filter = 'all') {
+        const container = document.getElementById('history-container');
+        container.innerHTML = '';
+
+        const filtered = appState.history.filter(item => {
+            if(filter === 'all') return true;
+            return item.status === filter;
+        });
+
+        filtered.forEach(item => {
+            let statusBadge, actionBtn;
+            
+            if(item.status === 'signed') {
+                statusBadge = `<span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 w-fit"><i class="fa-solid fa-check-circle"></i> Assinado</span>`;
+                actionBtn = `<button onclick="alert('Baixando cópia do PDF...')" class="w-8 h-8 rounded-full border border-gray-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition-colors"><i class="fa-solid fa-download"></i></button>`;
+            } else {
+                statusBadge = `<span class="bg-yellow-100 text-yellow-700 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 w-fit"><i class="fa-solid fa-clock"></i> Pendente</span>`;
+                actionBtn = `<button onclick="openRDOForm('${item.obra}', 'Retomar Edição')" class="w-8 h-8 rounded-full bg-yellow-50 text-yellow-600 hover:bg-yellow-100 flex items-center justify-center transition-colors"><i class="fa-solid fa-pen"></i></button>`;
+            }
+
+            const html = `
+                <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between animate-fade-in">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 font-bold text-xs flex-shrink-0">RDO<br>#${item.id}</div>
+                        <div>
+                            <h4 class="font-bold text-slate-800 text-sm leading-tight">${item.obra}</h4>
+                            <p class="text-xs text-gray-400 mt-1">${item.date}</p>
+                            <div class="mt-1">${statusBadge}</div>
+                        </div>
+                    </div>
+                    ${actionBtn}
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        });
+    }
+    
+    // Filtro Visual
+    function filterHistory(type, btn) {
+        document.querySelectorAll('.filter-btn').forEach(b => {
+            b.classList.remove('bg-slate-800', 'text-white');
+            b.classList.add('bg-white', 'text-gray-500', 'border');
+        });
+        btn.classList.remove('bg-white', 'text-gray-500', 'border');
+        btn.classList.add('bg-slate-800', 'text-white');
+        renderHistory(type);
+    }
+
+    // Toggle Online/Offline
+    let isOnline = true;
+    function toggleConnection() {
+        isOnline = !isOnline;
+        const badge = document.getElementById('status-badge');
+        if(!isOnline) {
+            badge.className = "bg-red-100 text-red-700 border border-red-200 text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-colors cursor-pointer";
+            badge.innerHTML = `<div class="w-1.5 h-1.5 bg-red-500 rounded-full"></div> <span>OFFLINE</span>`;
+            alert("Modo Offline Ativado: Os dados serão salvos localmente e sincronizados quando a conexão retornar.");
+        } else {
+            badge.className = "bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-colors cursor-pointer";
+            badge.innerHTML = `<div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> <span>ONLINE</span>`;
+        }
+    }
+
+    // Inicialização
+    // Seleciona defaults
+    document.querySelectorAll('.weather-btn').forEach(b => {
+        if(b.innerText.includes('Sol')) b.classList.add('selected');
+    });
+    renderHistory(); // Carrega histórico inicial
+
+</script>
+
+</body>
+</html>
